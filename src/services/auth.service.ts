@@ -1,0 +1,277 @@
+import axios from 'axios';
+import {
+  LoginCredentials,
+  RegisterData,
+  ForgotPasswordData,
+  VerifyOTPData,
+  ResetPasswordData,
+  User,
+  AuthTokens,
+} from '../types/auth.types';
+import { getAccessToken, getRefreshToken } from '../utils/auth.utils';
+
+// Mock API base URL - Replace with your actual API
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+
+/**
+ * Generate a mock JWT token for testing
+ */
+const generateMockJWT = (expiresInSeconds: number = 3600): string => {
+  const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+  const payload = btoa(
+    JSON.stringify({
+      sub: '1',
+      email: 'user@example.com',
+      role: 'student',
+      iat: Math.floor(Date.now() / 1000),
+      exp: Math.floor(Date.now() / 1000) + expiresInSeconds,
+    })
+  );
+  const signature = btoa('mock_signature');
+  return `${header}.${payload}.${signature}`;
+};
+
+// Create axios instance
+const authApi = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Request interceptor to add auth token
+authApi.interceptors.request.use(
+  (config) => {
+    const token = getAccessToken();
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+/**
+ * Login user with credentials
+ */
+export const loginUser = async (
+  credentials: LoginCredentials
+): Promise<{ user: User; tokens: AuthTokens }> => {
+  try {
+    // Mock response for demo - Replace with actual API call
+    // const response = await authApi.post('/auth/login', credentials);
+    
+    // Mock data
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    
+    return {
+      user: {
+        id: '1',
+        email: credentials.email,
+        firstName: 'John',
+        lastName: 'Doe',
+        role: 'student',
+        isEmailVerified: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      tokens: {
+        accessToken: generateMockJWT(3600), // 1 hour
+        refreshToken: generateMockJWT(604800), // 7 days
+        expiresIn: 3600,
+      },
+    };
+  } catch (error) {
+    throw error;
+  }
+};
+
+/**
+ * Register new user
+ */
+export const registerUser = async (
+  data: RegisterData
+): Promise<{ user: User; tokens: AuthTokens }> => {
+  try {
+    // Handle file upload if profile picture exists
+    if (data.profilePicture) {
+      const formData = new FormData();
+      Object.entries(data).forEach(([key, value]) => {
+        if (value !== undefined) {
+          formData.append(key, value);
+        }
+      });
+      // const response = await authApi.post('/auth/register', formData, {
+      //   headers: { 'Content-Type': 'multipart/form-data' },
+      // });
+    }
+
+    // Mock response
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    
+    return {
+      user: {
+        id: '2',
+        email: data.email,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        role: data.role,
+        isEmailVerified: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      tokens: {
+        accessToken: generateMockJWT(3600), // 1 hour
+        refreshToken: generateMockJWT(604800), // 7 days
+        expiresIn: 3600,
+      },
+    };
+  } catch (error) {
+    throw error;
+  }
+};
+
+/**
+ * Request password reset
+ */
+export const requestPasswordReset = async (
+  data: ForgotPasswordData
+): Promise<{ message: string }> => {
+  try {
+    // const response = await authApi.post('/auth/forgot-password', data);
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    
+    return {
+      message: 'Password reset OTP sent to your email',
+    };
+  } catch (error) {
+    throw error;
+  }
+};
+
+/**
+ * Verify OTP for password reset
+ */
+export const verifyOTP = async (data: VerifyOTPData): Promise<{ valid: boolean }> => {
+  try {
+    // const response = await authApi.post('/auth/verify-otp', data);
+    await new Promise((resolve) => setTimeout(resolve, 800));
+    
+    // Mock validation - accept 123456 as valid OTP
+    return {
+      valid: data.otp === '123456',
+    };
+  } catch (error) {
+    throw error;
+  }
+};
+
+/**
+ * Reset password with OTP
+ */
+export const resetPassword = async (
+  data: ResetPasswordData
+): Promise<{ message: string }> => {
+  try {
+    // const response = await authApi.post('/auth/reset-password', data);
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    
+    return {
+      message: 'Password reset successfully',
+    };
+  } catch (error) {
+    throw error;
+  }
+};
+
+/**
+ * Refresh access token
+ */
+export const refreshAccessToken = async (): Promise<AuthTokens> => {
+  try {
+    const refreshToken = getRefreshToken();
+    if (!refreshToken) {
+      throw new Error('No refresh token available');
+    }
+
+    // const response = await authApi.post('/auth/refresh', { refreshToken });
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    
+    return {
+      accessToken: generateMockJWT(3600), // 1 hour
+      refreshToken: generateMockJWT(604800), // 7 days
+      expiresIn: 3600,
+    };
+  } catch (error) {
+    throw error;
+  }
+};
+
+/**
+ * Logout user
+ */
+export const logoutUser = async (): Promise<void> => {
+  try {
+    // const response = await authApi.post('/auth/logout');
+    await new Promise((resolve) => setTimeout(resolve, 300));
+  } catch (error) {
+    // Continue with logout even if API call fails
+    console.error('Logout error:', error);
+  }
+};
+
+/**
+ * Get current user profile
+ */
+export const getCurrentUser = async (): Promise<User> => {
+  try {
+    // const response = await authApi.get('/auth/me');
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    
+    return {
+      id: '1',
+      email: 'user@example.com',
+      firstName: 'John',
+      lastName: 'Doe',
+      role: 'student',
+      isEmailVerified: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+  } catch (error) {
+    throw error;
+  }
+};
+
+/**
+ * Social authentication (Google/Facebook)
+ */
+export const socialAuth = async (
+  provider: 'google' | 'facebook',
+  token: string
+): Promise<{ user: User; tokens: AuthTokens }> => {
+  try {
+    // const response = await authApi.post(`/auth/${provider}`, { token });
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    
+    return {
+      user: {
+        id: '3',
+        email: 'social@example.com',
+        firstName: 'Social',
+        lastName: 'User',
+        role: 'student',
+        isEmailVerified: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      tokens: {
+        accessToken: generateMockJWT(3600), // 1 hour
+        refreshToken: generateMockJWT(604800), // 7 days
+        expiresIn: 3600,
+      },
+    };
+  } catch (error) {
+    throw error;
+  }
+};
