@@ -60,11 +60,12 @@ export interface AuthState {
 }
 
 export interface AuthContextType extends AuthState {
-  login: (credentials: LoginCredentials) => Promise<void>;
-  register: (data: RegisterData) => Promise<void>;
+  login: (credentials: LoginCredentials) => Promise<{ user: User; tokens: AuthTokens }>;
+  register: (data: RegisterData) => Promise<{ user: User; tokens: AuthTokens }>;
   logout: () => void;
   refreshToken: () => Promise<void>;
   updateUser: (user: Partial<User>) => void;
+  socialLogin: (provider: 'google' | 'facebook', token: string) => Promise<any>;
   clearError: () => void;
 }
 

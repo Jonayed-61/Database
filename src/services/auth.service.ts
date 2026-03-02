@@ -11,7 +11,7 @@ import {
 import { getAccessToken, getRefreshToken } from '../utils/auth.utils';
 
 // Mock API base URL - Replace with your actual API
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost/Database-main/backend';
 
 /**
  * Generate a mock JWT token for testing
@@ -32,12 +32,24 @@ const generateMockJWT = (expiresInSeconds: number = 3600): string => {
 };
 
 // Create axios instance
+console.debug('[auth.service] using API_BASE_URL =', API_BASE_URL);
 const authApi = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
 });
+
+// Response interceptor mainly for debugging network issues
+authApi.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    // log full error object for investigation
+    console.error('[auth.service] network error or response error:', error);
+    // rethrow to let caller handle formatting
+    return Promise.reject(error);
+  }
+);
 
 // Request interceptor to add auth token
 authApi.interceptors.request.use(
@@ -58,30 +70,16 @@ export const loginUser = async (
   credentials: LoginCredentials
 ): Promise<{ user: User; tokens: AuthTokens }> => {
   try {
-    // Mock response for demo - Replace with actual API call
-    // const response = await authApi.post('/auth/login', credentials);
-    
-    // Mock data
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    
-    return {
-      user: {
-        id: '1',
-        email: credentials.email,
-        firstName: 'John',
-        lastName: 'Doe',
-        role: 'student',
-        isEmailVerified: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-      tokens: {
-        accessToken: generateMockJWT(3600), // 1 hour
-        refreshToken: generateMockJWT(604800), // 7 days
-        expiresIn: 3600,
-      },
-    };
-  } catch (error) {
+    console.debug('[auth.service] loginUser credentials', credentials);
+    const response = await authApi.post('/login.php', credentials);
+    return response.data;
+  } catch (error: any) {
+    // log some details before rethrowing
+    console.error('[auth.service] loginUser failed', {
+      message: error.message,
+      response: error.response,
+      request: error.request,
+    });
     throw error;
   }
 };
@@ -93,6 +91,7 @@ export const registerUser = async (
   data: RegisterData
 ): Promise<{ user: User; tokens: AuthTokens }> => {
   try {
+    console.debug('[auth.service] registerUser data', data);
     // Handle file upload if profile picture exists
     if (data.profilePicture) {
       const formData = new FormData();
@@ -101,32 +100,20 @@ export const registerUser = async (
           formData.append(key, value);
         }
       });
-      // const response = await authApi.post('/auth/register', formData, {
-      //   headers: { 'Content-Type': 'multipart/form-data' },
-      // });
+      const response = await authApi.post('/register.php', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      return response.data;
     }
 
-    // Mock response
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    
-    return {
-      user: {
-        id: '2',
-        email: data.email,
-        firstName: data.firstName,
-        lastName: data.lastName,
-        role: data.role,
-        isEmailVerified: false,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-      tokens: {
-        accessToken: generateMockJWT(3600), // 1 hour
-        refreshToken: generateMockJWT(604800), // 7 days
-        expiresIn: 3600,
-      },
-    };
-  } catch (error) {
+    const response = await authApi.post('/register.php', data);
+    return response.data;
+  } catch (error: any) {
+    console.error('[auth.service] registerUser failed', {
+      message: error.message,
+      response: error.response,
+      request: error.request,
+    });
     throw error;
   }
 };
@@ -140,7 +127,7 @@ export const requestPasswordReset = async (
   try {
     // const response = await authApi.post('/auth/forgot-password', data);
     await new Promise((resolve) => setTimeout(resolve, 1000));
-    
+
     return {
       message: 'Password reset OTP sent to your email',
     };
@@ -156,7 +143,7 @@ export const verifyOTP = async (data: VerifyOTPData): Promise<{ valid: boolean }
   try {
     // const response = await authApi.post('/auth/verify-otp', data);
     await new Promise((resolve) => setTimeout(resolve, 800));
-    
+
     // Mock validation - accept 123456 as valid OTP
     return {
       valid: data.otp === '123456',
@@ -175,7 +162,7 @@ export const resetPassword = async (
   try {
     // const response = await authApi.post('/auth/reset-password', data);
     await new Promise((resolve) => setTimeout(resolve, 1000));
-    
+
     return {
       message: 'Password reset successfully',
     };
@@ -196,7 +183,7 @@ export const refreshAccessToken = async (): Promise<AuthTokens> => {
 
     // const response = await authApi.post('/auth/refresh', { refreshToken });
     await new Promise((resolve) => setTimeout(resolve, 500));
-    
+
     return {
       accessToken: generateMockJWT(3600), // 1 hour
       refreshToken: generateMockJWT(604800), // 7 days
@@ -225,19 +212,8 @@ export const logoutUser = async (): Promise<void> => {
  */
 export const getCurrentUser = async (): Promise<User> => {
   try {
-    // const response = await authApi.get('/auth/me');
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    
-    return {
-      id: '1',
-      email: 'user@example.com',
-      firstName: 'John',
-      lastName: 'Doe',
-      role: 'student',
-      isEmailVerified: true,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    const response = await authApi.get('/me.php');
+    return response.data;
   } catch (error) {
     throw error;
   }
@@ -253,7 +229,7 @@ export const socialAuth = async (
   try {
     // const response = await authApi.post(`/auth/${provider}`, { token });
     await new Promise((resolve) => setTimeout(resolve, 1000));
-    
+
     return {
       user: {
         id: '3',

@@ -12,8 +12,9 @@ const SessionTimeout: React.FC = () => {
     if (!tokens?.accessToken) return;
 
     const checkTokenExpiry = () => {
+      if (!tokens?.accessToken) return;
       const expiryTime = getTokenExpiryTime(tokens.accessToken);
-      
+
       // Token is invalid or already expired
       if (!expiryTime) {
         logout();

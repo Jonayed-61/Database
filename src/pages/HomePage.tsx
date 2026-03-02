@@ -26,8 +26,8 @@ const HomePage: React.FC = () => {
   return (
     <div className="min-h-screen bg-white dark:bg-navy-900">
       {/* Navigation */}
-      <Navbar 
-        items={navItems} 
+      <Navbar
+        items={navItems}
         rightContent={
           <div className="flex items-center gap-3">
             <ThemeToggle />
@@ -37,9 +37,9 @@ const HomePage: React.FC = () => {
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-lg transition-colors"
+                    className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-lg shadow-lg shadow-primary-500/20 transition-all font-bold"
                   >
-                    Dashboard
+                    Go to Dashboard →
                   </motion.button>
                 </Link>
                 <button
@@ -72,7 +72,7 @@ const HomePage: React.FC = () => {
               </>
             )}
           </div>
-        } 
+        }
       />
 
       {/* Main Content */}

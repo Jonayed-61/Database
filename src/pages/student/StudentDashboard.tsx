@@ -1,5 +1,17 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import axios from 'axios';
+import {
+  Bell,
+  LogOut,
+  BookOpen,
+  Clock,
+  CheckSquare,
+  CreditCard,
+  LayoutDashboard,
+  Calendar,
+  AlertCircle
+} from 'lucide-react';
 import {
   ResponsiveContainer,
   RadialBarChart,
@@ -10,961 +22,319 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  BarChart,
-  Bar,
-  RadarChart,
-  Radar,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  PieChart,
-  Pie,
-  Cell,
 } from 'recharts';
-import {
-  DndContext,
-  DragOverlay,
-  useDraggable,
-  useDroppable,
-  DragEndEvent,
-  DragStartEvent,
-} from '@dnd-kit/core';
-
-interface Course {
-  id: string;
-  code: string;
-  name: string;
-  credits: number;
-  category: string;
-  level: string;
-  prerequisites?: string[];
-}
-
-type DayKey = 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri';
-
-type ScheduleState = Record<DayKey, Course[]>;
-
-const DAYS: DayKey[] = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
-
-const STUDENT = {
-  name: 'Aisha Karim',
-  program: 'BSc Computer Science',
-  photo: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Aisha',
-};
-
-const QUICK_STATS = [
-  { label: 'GPA', value: '3.72', change: '+0.08', trend: 'up' },
-  { label: 'Credits', value: '96', change: '+12', trend: 'up' },
-  { label: 'Attendance', value: '92%', change: '-1%', trend: 'down' },
-];
-
-const GPA_PROGRESS = [{ name: 'GPA', value: 3.72, fill: '#f59e0b' }];
-
-const SEMESTER_COURSES = [
-  { code: 'CS-401', title: 'Advanced Algorithms', instructor: 'Dr. Rana' },
-  { code: 'CS-410', title: 'Machine Learning', instructor: 'Dr. Qureshi' },
-  { code: 'CS-430', title: 'Distributed Systems', instructor: 'Prof. Samir' },
-  { code: 'CS-440', title: 'Capstone Project', instructor: 'Prof. Ali' },
-];
-
-const DEADLINES = [
-  { date: 'Feb 20', title: 'ML Assignment 2', type: 'Assignment' },
-  { date: 'Feb 22', title: 'Algorithms Quiz', type: 'Quiz' },
-  { date: 'Feb 27', title: 'Capstone Proposal', type: 'Project' },
-  { date: 'Mar 03', title: 'Distributed Systems Lab', type: 'Lab' },
-];
-
-const RECENT_GRADES = [
-  { subject: 'Algorithms', grade: 'A-', trend: 'up' },
-  { subject: 'ML', grade: 'B+', trend: 'up' },
-  { subject: 'Distributed Systems', grade: 'A', trend: 'steady' },
-  { subject: 'Capstone', grade: 'B', trend: 'down' },
-];
-
-const ATTENDANCE_OVERVIEW = [
-  { name: 'Mon', value: 90 },
-  { name: 'Tue', value: 95 },
-  { name: 'Wed', value: 88 },
-  { name: 'Thu', value: 93 },
-  { name: 'Fri', value: 92 },
-];
-
-const COURSE_CATALOG: Course[] = [
-  {
-    id: 'cs-451',
-    code: 'CS-451',
-    name: 'Cloud Computing',
-    credits: 3,
-    category: 'Core',
-    level: '400',
-    prerequisites: ['CS-330'],
-  },
-  {
-    id: 'cs-455',
-    code: 'CS-455',
-    name: 'Cybersecurity',
-    credits: 3,
-    category: 'Core',
-    level: '400',
-    prerequisites: ['CS-210'],
-  },
-  {
-    id: 'cs-460',
-    code: 'CS-460',
-    name: 'Data Visualization',
-    credits: 2,
-    category: 'Elective',
-    level: '400',
-  },
-  {
-    id: 'cs-470',
-    code: 'CS-470',
-    name: 'Mobile Development',
-    credits: 3,
-    category: 'Elective',
-    level: '400',
-    prerequisites: ['CS-220'],
-  },
-  {
-    id: 'cs-480',
-    code: 'CS-480',
-    name: 'Natural Language Processing',
-    credits: 3,
-    category: 'Elective',
-    level: '400',
-    prerequisites: ['CS-310'],
-  },
-];
-
-const INITIAL_SCHEDULE: ScheduleState = {
-  Mon: [COURSE_CATALOG[0]],
-  Tue: [COURSE_CATALOG[1]],
-  Wed: [],
-  Thu: [COURSE_CATALOG[2]],
-  Fri: [],
-};
-
-const GRADE_SEMESTERS = [
-  { term: 'Fall 2024', gpa: 3.68, credits: 15 },
-  { term: 'Spring 2025', gpa: 3.75, credits: 16 },
-  { term: 'Fall 2025', gpa: 3.72, credits: 15 },
-];
-
-const RADAR_DATA = [
-  { subject: 'Algorithms', score: 92 },
-  { subject: 'ML', score: 88 },
-  { subject: 'Systems', score: 90 },
-  { subject: 'Capstone', score: 84 },
-  { subject: 'Electives', score: 86 },
-];
-
-const GPA_TREND = [
-  { term: 'F24', value: 3.68 },
-  { term: 'S25', value: 3.75 },
-  { term: 'F25', value: 3.72 },
-];
-
-const GRADE_DISTRIBUTION = [
-  { grade: 'A', current: 5, previous: 4 },
-  { grade: 'B', current: 3, previous: 4 },
-  { grade: 'C', current: 1, previous: 2 },
-  { grade: 'D', current: 0, previous: 1 },
-];
-
-const ATTENDANCE_CALENDAR = Array.from({ length: 28 }, (_, index) => {
-  const status = index % 7 === 0 ? 'absent' : index % 5 === 0 ? 'late' : 'present';
-  return { day: index + 1, status };
-});
-
-const ATTENDANCE_MONTHLY = [
-  { month: 'Sep', value: 94 },
-  { month: 'Oct', value: 91 },
-  { month: 'Nov', value: 93 },
-  { month: 'Dec', value: 89 },
-  { month: 'Jan', value: 92 },
-];
-
-const FEE_STRUCTURE = [
-  { label: 'Tuition', amount: 2800 },
-  { label: 'Lab', amount: 350 },
-  { label: 'Library', amount: 120 },
-  { label: 'Technology', amount: 180 },
-];
-
-const PAYMENT_HISTORY = [
-  { id: 'PMT-001', date: 'Jan 05', amount: 1200, method: 'Card', status: 'Paid' },
-  { id: 'PMT-002', date: 'Feb 05', amount: 900, method: 'Bank', status: 'Paid' },
-  { id: 'PMT-003', date: 'Mar 05', amount: 500, method: 'Card', status: 'Pending' },
-];
-
-const COURSE_COLORS = ['#2563eb', '#f59e0b', '#22c55e', '#ef4444', '#a855f7'];
-
-const PolarAngleAxisTyped = PolarAngleAxis as unknown as React.FC<{ dataKey?: string }>;
-
-const StatCard: React.FC<{ label: string; value: string; change: string; trend: string }> = ({
-  label,
-  value,
-  change,
-  trend,
-}) => (
-  <div className="bg-white dark:bg-navy-800 rounded-2xl p-4 shadow-lg">
-    <p className="text-sm text-gray-500 dark:text-gray-400">{label}</p>
-    <div className="mt-2 flex items-end justify-between">
-      <span className="text-3xl font-bold text-navy-900 dark:text-white">{value}</span>
-      <span
-        className={`text-sm font-semibold ${
-          trend === 'up' ? 'text-green-500' : trend === 'down' ? 'text-red-500' : 'text-gray-500'
-        }`}
-      >
-        {change}
-      </span>
-    </div>
-  </div>
-);
-
-const SectionCard: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
-  <div className="bg-white dark:bg-navy-800 rounded-2xl p-6 shadow-lg">
-    <div className="flex items-center justify-between mb-4">
-      <h3 className="text-xl font-bold text-navy-900 dark:text-white">{title}</h3>
-    </div>
-    {children}
-  </div>
-);
-
-const ScheduleCourseCard: React.FC<{ course: Course; colorIndex: number }> = ({
-  course,
-  colorIndex,
-}) => (
-  <div className="rounded-xl p-3 text-white" style={{ background: COURSE_COLORS[colorIndex % COURSE_COLORS.length] }}>
-    <p className="text-sm font-semibold">{course.code}</p>
-    <p className="text-xs opacity-90">{course.name}</p>
-    <p className="text-xs opacity-80">{course.credits} credits</p>
-  </div>
-);
-
-const DraggableCourse: React.FC<{ course: Course }> = ({ course }) => {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: course.id,
-  });
-
-  const style = transform
-    ? {
-        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-      }
-    : undefined;
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      {...listeners}
-      {...attributes}
-      className={`rounded-xl border border-gray-200 dark:border-navy-700 p-3 bg-gray-50 dark:bg-navy-700 cursor-grab ${
-        isDragging ? 'opacity-50' : ''
-      }`}
-    >
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-sm font-semibold text-navy-900 dark:text-white">{course.code}</p>
-          <p className="text-xs text-gray-500 dark:text-gray-400">{course.name}</p>
-        </div>
-        <span className="text-xs font-semibold text-primary-600">{course.credits}cr</span>
-      </div>
-      <div className="mt-2 flex gap-2">
-        <span className="text-[10px] px-2 py-1 rounded-full bg-primary-100 text-primary-700">
-          {course.category}
-        </span>
-        <span className="text-[10px] px-2 py-1 rounded-full bg-gold-100 text-gold-700">
-          {course.level}
-        </span>
-      </div>
-    </div>
-  );
-};
-
-const DroppableColumn: React.FC<{ id: string; title: string; children: React.ReactNode }> = ({
-  id,
-  title,
-  children,
-}) => {
-  const { setNodeRef, isOver } = useDroppable({ id });
-
-  return (
-    <div
-      ref={setNodeRef}
-      className={`rounded-2xl border border-dashed p-3 min-h-[140px] ${
-        isOver ? 'border-primary-500 bg-primary-50/40' : 'border-gray-200 dark:border-navy-700'
-      }`}
-    >
-      <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">{title}</p>
-      <div className="space-y-2">{children}</div>
-    </div>
-  );
-};
+import { useAuth } from '../../contexts/AuthContext';
+import { getAccessToken } from '../../utils/auth.utils';
+import Navbar from '../../components/ui/Navbar';
+import Sidebar from '../../components/ui/Sidebar';
+import StudentProgressSubmit from '../../components/student/StudentProgressSubmit';
+import StudentSubmissionHistory from '../../components/student/StudentSubmissionHistory';
 
 const StudentDashboard: React.FC = () => {
+  const { user, logout } = useAuth();
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [catalogCourses, setCatalogCourses] = useState<Course[]>(COURSE_CATALOG);
-  const [schedule, setSchedule] = useState<ScheduleState>(INITIAL_SCHEDULE);
-  const [activeCourseId, setActiveCourseId] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('All');
-  const [selectedLevel, setSelectedLevel] = useState('All');
-  const [showConfirmation, setShowConfirmation] = useState(false);
 
-  const filteredCatalog = useMemo(() => {
-    return catalogCourses.filter((course) => {
-      const matchesSearch = `${course.code} ${course.name}`
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase());
-      const matchesCategory = selectedCategory === 'All' || course.category === selectedCategory;
-      const matchesLevel = selectedLevel === 'All' || course.level === selectedLevel;
-      return matchesSearch && matchesCategory && matchesLevel;
-    });
-  }, [catalogCourses, searchTerm, selectedCategory, selectedLevel]);
-
-  const totalCredits = useMemo(() => {
-    return Object.values(schedule)
-      .flat()
-      .reduce((sum, course) => sum + course.credits, 0);
-  }, [schedule]);
-
-  const findContainer = (courseId: string) => {
-    if (catalogCourses.some((course) => course.id === courseId)) {
-      return 'catalog';
-    }
-
-    const day = DAYS.find((dayKey) => schedule[dayKey].some((course) => course.id === courseId));
-    return day || null;
-  };
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-
-    if (!over) {
-      setActiveCourseId(null);
-      return;
-    }
-
-    const sourceContainer = findContainer(active.id as string);
-    const targetContainer = over.id as string;
-
-    if (!sourceContainer || sourceContainer === targetContainer) {
-      setActiveCourseId(null);
-      return;
-    }
-
-    const moveCourse = (courseId: string, from: string, to: string) => {
-      let movedCourse: Course | null = null;
-
-      if (from === 'catalog') {
-        setCatalogCourses((prev) => {
-          const next = prev.filter((course) => {
-            if (course.id === courseId) {
-              movedCourse = course;
-              return false;
-            }
-            return true;
-          });
-          return next;
+  useEffect(() => {
+    const fetchStudentData = async () => {
+      try {
+        const token = getAccessToken();
+        const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/student_stats.php`, {
+          headers: { Authorization: `Bearer ${token}` }
         });
-      } else {
-        setSchedule((prev) => {
-          const updated = { ...prev };
-          updated[from as DayKey] = prev[from as DayKey].filter((course) => {
-            if (course.id === courseId) {
-              movedCourse = course;
-              return false;
-            }
-            return true;
-          });
-          return updated;
-        });
-      }
-
-      if (!movedCourse) return;
-
-      if (to === 'catalog') {
-        setCatalogCourses((prev) => [movedCourse as Course, ...prev]);
-      } else if (DAYS.includes(to as DayKey)) {
-        setSchedule((prev) => ({
-          ...prev,
-          [to as DayKey]: [...prev[to as DayKey], movedCourse as Course],
-        }));
+        setData(response.data);
+      } catch (error: any) {
+        console.error('Error fetching student data:', error);
+        setError(error.response?.data?.message || 'Failed to connect to server. Please try again.');
+      } finally {
+        setLoading(false);
       }
     };
+    fetchStudentData();
+  }, []);
 
-    moveCourse(active.id as string, sourceContainer, targetContainer);
-    setActiveCourseId(null);
-  };
+  const menuItems = [
+    { label: 'Overview', icon: <LayoutDashboard size={20} />, href: '/student/dashboard' },
+    { label: 'Registration', icon: <BookOpen size={20} />, href: '/student/registration' },
+    { label: 'Grades', icon: <CheckSquare size={20} />, href: '/student/grades' },
+    { label: 'Attendance', icon: <Clock size={20} />, href: '/student/attendance' },
+    { label: 'Fees', icon: <CreditCard size={20} />, href: '/student/fees' },
+  ];
 
-  const handleDragStart = (event: DragStartEvent) => {
-    setActiveCourseId(event.active.id as string);
-  };
-
-  const activeCourse = useMemo(() => {
+  if (loading) {
     return (
-      catalogCourses.find((course) => course.id === activeCourseId) ||
-      Object.values(schedule)
-        .flat()
-        .find((course) => course.id === activeCourseId) ||
-      null
+      <div className="min-h-screen bg-[#050b18] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gold-500"></div>
+      </div>
     );
-  }, [activeCourseId, catalogCourses, schedule]);
+  }
 
-  const missingPrereqs = useMemo(() => {
-    const completed = ['CS-210', 'CS-220', 'CS-330'];
-    return Object.values(schedule)
-      .flat()
-      .flatMap((course) => course.prerequisites || [])
-      .filter((prereq, index, self) => self.indexOf(prereq) === index)
-      .filter((prereq) => !completed.includes(prereq));
-  }, [schedule]);
+  const gpaValue = parseFloat(data?.stats?.gpa || '0');
+  const gpaData = [{ name: 'GPA', value: gpaValue, fill: '#FFB347' }];
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-[#050b18] flex items-center justify-center p-4">
+        <div className="glass-panel p-8 rounded-3xl border border-red-500/20 text-center max-w-md">
+          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <h2 className="text-xl font-bold mb-2">Oops! Something went wrong</h2>
+          <p className="text-gray-400 mb-6">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-6 py-2 bg-blue-600 hover:bg-blue-700 rounded-xl font-bold transition-all"
+          >
+            Retry Connection
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-      className="min-h-screen bg-gray-100 dark:bg-navy-900 text-navy-900 dark:text-white"
-    >
-      <div className="flex">
-        {/* Sidebar */}
-        <aside
-          className={`bg-white dark:bg-navy-800 border-r border-gray-200 dark:border-navy-700 min-h-screen transition-all duration-300 ${
-            isSidebarCollapsed ? 'w-20' : 'w-64'
-          }`}
-        >
-          <div className="p-6 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">🎓</span>
-              {!isSidebarCollapsed && (
-                <span className="text-lg font-bold">Student Hub</span>
-              )}
-            </div>
-            <button
-              onClick={() => setIsSidebarCollapsed((prev) => !prev)}
-              className="text-gray-400 hover:text-primary-600"
-            >
-              {isSidebarCollapsed ? '»' : '«'}
+    <div className="min-h-screen bg-[#050b18] text-white">
+      <Navbar
+        items={[]}
+        rightContent={
+          <div className="flex items-center gap-4">
+            <button className="p-2 hover:bg-white/10 rounded-full transition-colors relative">
+              <Bell size={20} />
+              <span className="absolute top-1 right-1 w-2 h-2 bg-gold-500 rounded-full"></span>
             </button>
+            <div className="flex items-center gap-3 pl-4 border-l border-white/10">
+              <div className="text-right hidden sm:block">
+                <p className="text-sm font-semibold">{user?.firstName} {user?.lastName}</p>
+                <p className="text-xs text-gray-400 capitalize">{user?.role}</p>
+              </div>
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center font-bold text-white shadow-lg border-2 border-white/20">
+                {user?.firstName?.[0]}{user?.lastName?.[0]}
+              </div>
+            </div>
           </div>
+        }
+      />
 
-          <nav className="px-4 space-y-2">
-            {[
-              'Overview',
-              'Registration',
-              'Grades',
-              'Attendance',
-              'Fees',
-              'Support',
-            ].map((item) => (
-              <button
-                key={item}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-primary-50 hover:text-primary-600"
-              >
-                <span className="text-lg">•</span>
-                {!isSidebarCollapsed && item}
-              </button>
-            ))}
-          </nav>
-        </aside>
+      <div className="flex pt-16">
+        <Sidebar
+          items={menuItems}
+          isCollapsed={isSidebarCollapsed}
+          onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+        />
 
-        <div className="flex-1">
-          {/* Header */}
-          <header className="flex items-center justify-between px-8 py-6 bg-white dark:bg-navy-800 border-b border-gray-200 dark:border-navy-700">
-            <div className="flex items-center gap-4">
-              <img
-                src={STUDENT.photo}
-                alt="Student"
-                className="w-12 h-12 rounded-full border-2 border-primary-500"
-              />
+        <main className={`flex-1 transition-all duration-300 p-8 ${isSidebarCollapsed ? 'ml-20' : 'ml-64'}`}>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="max-w-7xl mx-auto"
+          >
+            {/* Header */}
+            <header className="mb-12 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
               <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Welcome back,</p>
-                <h1 className="text-2xl font-bold">{STUDENT.name}</h1>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{STUDENT.program}</p>
+                <motion.h1
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="text-4xl font-bold text-white mb-2"
+                >
+                  Welcome Back, <span className="text-blue-400">{user?.firstName}</span>
+                </motion.h1>
+                <p className="text-gray-400 flex items-center gap-2">
+                  <Calendar size={16} /> {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                </p>
               </div>
-            </div>
-            <div className="flex items-center gap-4">
-              <button className="relative p-3 rounded-xl bg-gray-100 dark:bg-navy-700">
-                🔔
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
+              <button
+                onClick={logout}
+                className="flex items-center gap-2 px-6 py-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 rounded-xl font-semibold transition-all hover:scale-105 active:scale-95"
+              >
+                <LogOut size={18} /> Logout
               </button>
-              <button className="p-3 rounded-xl bg-gray-100 dark:bg-navy-700">⚙️</button>
-            </div>
-          </header>
+            </header>
 
-          <main className="p-8 space-y-10">
             {/* Quick Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {QUICK_STATS.map((stat) => (
-                <StatCard key={stat.label} {...stat} />
-              ))}
-            </div>
-
-            {/* Overview Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <SectionCard title="GPA Progress">
-                <div className="h-48">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <RadialBarChart
-                      innerRadius="70%"
-                      outerRadius="100%"
-                      data={GPA_PROGRESS}
-                      startAngle={90}
-                      endAngle={-270}
-                    >
-                      <RadialBar dataKey="value" cornerRadius={10} />
-                    </RadialBarChart>
-                  </ResponsiveContainer>
-                </div>
-                <p className="text-center text-3xl font-bold text-gold-500">3.72</p>
-                <p className="text-center text-sm text-gray-500">Target: 4.0</p>
-              </SectionCard>
-
-              <SectionCard title="Current Semester Courses">
-                <div className="space-y-3">
-                  {SEMESTER_COURSES.map((course) => (
-                    <div
-                      key={course.code}
-                      className="flex items-center justify-between bg-gray-50 dark:bg-navy-700 p-3 rounded-xl"
-                    >
-                      <div>
-                        <p className="font-semibold text-sm">{course.title}</p>
-                        <p className="text-xs text-gray-500">{course.code} • {course.instructor}</p>
-                      </div>
-                      <span className="text-xs font-semibold text-primary-600">Active</span>
-                    </div>
-                  ))}
-                </div>
-              </SectionCard>
-
-              <SectionCard title="Upcoming Deadlines">
-                <div className="space-y-3">
-                  {DEADLINES.map((deadline) => (
-                    <div key={deadline.title} className="flex items-start gap-3">
-                      <div className="text-sm font-semibold text-primary-600">{deadline.date}</div>
-                      <div>
-                        <p className="text-sm font-semibold">{deadline.title}</p>
-                        <p className="text-xs text-gray-500">{deadline.type}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </SectionCard>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <SectionCard title="Recent Grades">
-                <div className="space-y-3">
-                  {RECENT_GRADES.map((grade) => (
-                    <div
-                      key={grade.subject}
-                      className="flex items-center justify-between bg-gray-50 dark:bg-navy-700 p-3 rounded-xl"
-                    >
-                      <div>
-                        <p className="font-semibold text-sm">{grade.subject}</p>
-                        <p className="text-xs text-gray-500">Recent assessment</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-lg font-bold">{grade.grade}</span>
-                        <span
-                          className={`text-xs ${
-                            grade.trend === 'up'
-                              ? 'text-green-500'
-                              : grade.trend === 'down'
-                              ? 'text-red-500'
-                              : 'text-gray-500'
-                          }`}
-                        >
-                          {grade.trend === 'up' ? '▲' : grade.trend === 'down' ? '▼' : '•'}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </SectionCard>
-
-              <SectionCard title="Attendance Summary">
-                <div className="h-48">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={ATTENDANCE_OVERVIEW}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                      <XAxis dataKey="name" />
-                      <YAxis />
-                      <Tooltip />
-                      <Bar dataKey="value" fill="#2563eb" radius={[6, 6, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </SectionCard>
-            </div>
-
-            {/* Course Registration */}
-            <SectionCard title="Course Registration">
-              <div className="grid grid-cols-1 xl:grid-cols-[1.1fr_1.4fr] gap-6">
-                <div className="space-y-4">
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <input
-                      value={searchTerm}
-                      onChange={(event) => setSearchTerm(event.target.value)}
-                      placeholder="Search courses"
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-navy-700 bg-white dark:bg-navy-700"
-                    />
-                    <select
-                      value={selectedCategory}
-                      onChange={(event) => setSelectedCategory(event.target.value)}
-                      className="px-4 py-3 rounded-xl border border-gray-200 dark:border-navy-700 bg-white dark:bg-navy-700"
-                    >
-                      <option>All</option>
-                      <option>Core</option>
-                      <option>Elective</option>
-                    </select>
-                    <select
-                      value={selectedLevel}
-                      onChange={(event) => setSelectedLevel(event.target.value)}
-                      className="px-4 py-3 rounded-xl border border-gray-200 dark:border-navy-700 bg-white dark:bg-navy-700"
-                    >
-                      <option>All</option>
-                      <option>400</option>
-                      <option>300</option>
-                    </select>
-                  </div>
-
-                  <DroppableColumn id="catalog" title="Course Catalog">
-                    {filteredCatalog.map((course) => (
-                      <DraggableCourse key={course.id} course={course} />
-                    ))}
-                  </DroppableColumn>
-
-                  <div className="rounded-xl bg-gray-50 dark:bg-navy-700 p-4">
-                    <p className="text-sm font-semibold">Credit Hour Calculator</p>
-                    <p className="text-2xl font-bold mt-2">{totalCredits} credits</p>
-                    <p className="text-xs text-gray-500">Recommended: 15 credits</p>
-                  </div>
-
-                  <div className="rounded-xl bg-yellow-50 dark:bg-yellow-900/20 p-4">
-                    <p className="text-sm font-semibold text-yellow-700">Prerequisite Checker</p>
-                    {missingPrereqs.length === 0 ? (
-                      <p className="text-xs text-gray-600 mt-1">All prerequisites satisfied.</p>
-                    ) : (
-                      <ul className="text-xs text-yellow-700 mt-2 list-disc list-inside">
-                        {missingPrereqs.map((item) => (
-                          <li key={item}>{item} not completed</li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <DndContext
-                    onDragStart={handleDragStart}
-                    onDragEnd={handleDragEnd}
-                  >
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                      {DAYS.map((dayKey, index) => (
-                        <DroppableColumn key={dayKey} id={dayKey} title={dayKey}>
-                          {schedule[dayKey].map((course) => (
-                            <ScheduleCourseCard key={course.id} course={course} colorIndex={index} />
-                          ))}
-                        </DroppableColumn>
-                      ))}
-                    </div>
-
-                    <DragOverlay>
-                      {activeCourse ? (
-                        <div className="rounded-xl p-3 bg-primary-600 text-white shadow-lg">
-                          <p className="text-sm font-semibold">{activeCourse.code}</p>
-                          <p className="text-xs opacity-90">{activeCourse.name}</p>
-                        </div>
-                      ) : null}
-                    </DragOverlay>
-                  </DndContext>
-
-                  <div className="rounded-xl bg-gray-50 dark:bg-navy-700 p-4">
-                    <p className="text-sm font-semibold">Waitlist Management</p>
-                    <div className="mt-2 space-y-2">
-                      {['CS-495 AI Ethics', 'CS-499 Special Topics'].map((item, index) => (
-                        <div key={item} className="flex items-center justify-between text-sm">
-                          <span>{item}</span>
-                          <span className="text-xs text-gray-500">#{index + 2}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <motion.button
-                    onClick={() => setShowConfirmation(true)}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="w-full py-3 rounded-xl bg-primary-600 text-white font-semibold"
-                  >
-                    Confirm Registration
-                  </motion.button>
-
-                  {showConfirmation && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="rounded-xl bg-green-50 dark:bg-green-900/20 p-4 text-green-700"
-                    >
-                      🎉 Registration confirmed! Your schedule is updated.
-                    </motion.div>
-                  )}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+              <div className="glass-panel p-6 rounded-3xl border border-white/10">
+                <p className="text-sm text-gray-400 mb-1">Current GPA</p>
+                <div className="flex items-end justify-between">
+                  <h3 className="text-3xl font-bold text-gold-400">{data?.stats?.gpa || '0.00'}</h3>
+                  <span className="text-green-400 text-sm font-semibold">+0.04 ▲</span>
                 </div>
               </div>
-            </SectionCard>
+              <div className="glass-panel p-6 rounded-3xl border border-white/10">
+                <p className="text-sm text-gray-400 mb-1">Credits Earned</p>
+                <div className="flex items-end justify-between">
+                  <h3 className="text-3xl font-bold text-blue-400">{data?.stats?.credits || 0}</h3>
+                  <span className="text-gray-400 text-sm">Target: 140</span>
+                </div>
+              </div>
+              <div className="glass-panel p-6 rounded-3xl border border-white/10">
+                <p className="text-sm text-gray-400 mb-1">Overall Attendance</p>
+                <div className="flex items-end justify-between">
+                  <h3 className="text-3xl font-bold text-green-400">{data?.stats?.attendance || '0%'}</h3>
+                  <span className="text-xs text-gray-500">Above average</span>
+                </div>
+              </div>
+            </div>
 
-            {/* Grade Viewer */}
-            <SectionCard title="Grade Viewer">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="space-y-3">
-                  {GRADE_SEMESTERS.map((term) => (
-                    <div key={term.term} className="rounded-xl bg-gray-50 dark:bg-navy-700 p-4">
-                      <p className="text-sm text-gray-500">{term.term}</p>
-                      <p className="text-2xl font-bold">GPA {term.gpa}</p>
-                      <p className="text-xs text-gray-500">{term.credits} credits</p>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+              {/* GPA & Analytics */}
+              <div className="glass-panel p-6 rounded-3xl border border-white/10 relative overflow-hidden">
+                <h3 className="text-xl font-bold mb-6 flex items-center gap-2 text-gold-400">
+                  <LayoutDashboard size={20} /> Semester Performance
+                </h3>
+                <div className="flex items-center justify-around h-48">
+                  <div className="w-32 h-32 relative">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RadialBarChart innerRadius="70%" outerRadius="100%" data={gpaData} startAngle={90} endAngle={-270}>
+                        <RadialBar dataKey="value" cornerRadius={10} maxBarSize={15} />
+                      </RadialBarChart>
+                    </ResponsiveContainer>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <p className="font-bold text-2xl">{data?.stats?.gpa || '0.00'}</p>
                     </div>
-                  ))}
-                  <button className="w-full py-3 rounded-xl border border-primary-500 text-primary-600 font-semibold">
-                    Download Transcript
-                  </button>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 rounded-full bg-gold-400"></div>
+                      <span className="text-sm text-gray-300">Current GPA</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                      <span className="text-sm text-gray-300">Target (4.0)</span>
+                    </div>
+                  </div>
                 </div>
+              </div>
 
-                <div className="h-64">
+              {/* Attendance Trend */}
+              <div className="glass-panel p-6 rounded-3xl border border-white/10">
+                <h3 className="text-xl font-bold mb-6 flex items-center gap-2 text-blue-400">
+                  <Clock size={20} /> Attendance Trends
+                </h3>
+                <div className="h-48 w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                    <RadarChart data={RADAR_DATA}>
-                      <PolarGrid />
-                      <PolarAngleAxisTyped dataKey="subject" />
-                      <PolarRadiusAxis />
-                      <Radar dataKey="score" stroke="#2563eb" fill="#2563eb" fillOpacity={0.4} />
-                    </RadarChart>
-                  </ResponsiveContainer>
-                </div>
-
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={GPA_TREND}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="term" />
-                      <YAxis domain={[3.0, 4.0]} />
-                      <Tooltip />
-                      <Line type="monotone" dataKey="value" stroke="#22c55e" strokeWidth={3} />
+                    <LineChart data={data?.attendanceTrends}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" />
+                      <XAxis dataKey="name" stroke="#64748b" />
+                      <YAxis stroke="#64748b" hide />
+                      <Tooltip contentStyle={{ background: '#0f172a', border: '1px solid #334155' }} />
+                      <Line type="monotone" dataKey="value" stroke="#3B82F6" strokeWidth={3} dot={{ r: 4, fill: '#3B82F6' }} />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
               </div>
+            </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={GRADE_DISTRIBUTION}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="grade" />
-                      <YAxis />
-                      <Tooltip />
-                      <Bar dataKey="current" fill="#2563eb" radius={[6, 6, 0, 0]} />
-                      <Bar dataKey="previous" fill="#f59e0b" radius={[6, 6, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-
-                <div className="rounded-xl bg-gray-50 dark:bg-navy-700 p-4">
-                  <p className="text-sm font-semibold">Grade Calculation Breakdown</p>
-                  <div className="mt-3 space-y-2 text-sm text-gray-600 dark:text-gray-300">
-                    <div className="flex justify-between">
-                      <span>Assignments</span>
-                      <span>40%</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Quizzes</span>
-                      <span>20%</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Midterm</span>
-                      <span>15%</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Final Exam</span>
-                      <span>25%</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </SectionCard>
-
-            {/* Attendance Tracker */}
-            <SectionCard title="Attendance Tracker">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div>
-                  <p className="text-sm font-semibold mb-3">Attendance Calendar</p>
-                  <div className="grid grid-cols-7 gap-2">
-                    {ATTENDANCE_CALENDAR.map((day) => (
-                      <div
-                        key={day.day}
-                        className={`w-9 h-9 rounded-lg flex items-center justify-center text-xs font-semibold ${
-                          day.status === 'present'
-                            ? 'bg-green-100 text-green-700'
-                            : day.status === 'late'
-                            ? 'bg-yellow-100 text-yellow-700'
-                            : 'bg-red-100 text-red-700'
-                        }`}
-                      >
-                        {day.day}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+              {/* Courses */}
+              <div className="lg:col-span-2 glass-panel p-6 rounded-3xl border border-white/10">
+                <h3 className="text-xl font-bold mb-6 text-blue-400 flex items-center gap-2">
+                  <BookOpen size={20} /> Enrolled Courses
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {data?.currentCourses?.map((course: any) => (
+                    <div key={course.id} className="p-4 rounded-2xl bg-white/5 border border-white/5 hover:border-blue-400/30 transition-all group">
+                      <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400 mb-3 font-bold group-hover:scale-110 transition-transform">
+                        {course.code.split('-')[0]}
                       </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <p className="text-sm font-semibold mb-3">Subject-wise Attendance</p>
-                  <div className="space-y-3">
-                    {['Algorithms', 'ML', 'Systems', 'Capstone'].map((subject) => (
-                      <div key={subject}>
-                        <div className="flex justify-between text-xs">
-                          <span>{subject}</span>
-                          <span>90%</span>
-                        </div>
-                        <div className="w-full h-2 bg-gray-200 rounded-full mt-1">
-                          <div className="h-2 bg-primary-500 rounded-full" style={{ width: '90%' }} />
-                        </div>
+                      <h4 className="font-bold mb-1 truncate">{course.title}</h4>
+                      <p className="text-xs text-gray-400 mb-3">{course.code} • Prof. {course.instructor}</p>
+                      <div className="flex justify-between items-center">
+                        <span className="text-[10px] px-2 py-1 rounded-full bg-blue-500/20 text-blue-400 uppercase tracking-wider font-bold">Active</span>
+                        <span className="text-xs text-gray-400">{course.credits} Credits</span>
                       </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <p className="text-sm font-semibold mb-3">Monthly Attendance</p>
-                  <div className="h-48">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={ATTENDANCE_MONTHLY}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="month" />
-                        <YAxis />
-                        <Tooltip />
-                        <Bar dataKey="value" fill="#22c55e" radius={[6, 6, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
+                    </div>
+                  ))}
+                  {(!data?.currentCourses || data?.currentCourses.length === 0) && (
+                    <div className="col-span-2 text-center py-10 text-gray-500">
+                      No courses enrolled for this semester.
+                    </div>
+                  )}
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-                <div className="rounded-xl bg-red-50 dark:bg-red-900/20 p-4">
-                  <p className="text-sm font-semibold text-red-700">Low Attendance Alerts</p>
-                  <ul className="mt-2 text-sm text-red-600 list-disc list-inside">
-                    <li>Capstone Project (78%)</li>
-                    <li>Distributed Systems (82%)</li>
-                  </ul>
+              {/* Payments/Fees */}
+              <div className="glass-panel p-6 rounded-3xl border border-white/10">
+                <h3 className="text-xl font-bold mb-6 text-gold-400 flex items-center gap-2">
+                  <CreditCard size={20} /> Pending Fees
+                </h3>
+                <div className="space-y-4 mb-6">
+                  {data?.fees?.structure?.map((fee: any, idx: number) => (
+                    <div key={idx} className="flex justify-between items-center p-3 rounded-xl bg-white/5 border border-white/5">
+                      <div>
+                        <p className="text-sm font-medium">{fee.label}</p>
+                        <p className="text-[10px] text-gray-500">Due in 30 days</p>
+                      </div>
+                      <p className="font-bold text-gold-400">${fee.amount}</p>
+                    </div>
+                  ))}
+                  {(!data?.fees?.structure || data?.fees?.structure.length === 0) && (
+                    <div className="text-center py-4 text-green-400 text-sm">
+                      All fees paid! 🎉
+                    </div>
+                  )}
                 </div>
-
-                <div className="rounded-xl bg-gray-50 dark:bg-navy-700 p-4">
-                  <p className="text-sm font-semibold">Leave Application</p>
-                  <div className="mt-3 space-y-3">
-                    <input
-                      placeholder="Reason"
-                      className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-navy-600 bg-white dark:bg-navy-800"
-                    />
-                    <input
-                      type="date"
-                      className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-navy-600 bg-white dark:bg-navy-800"
-                    />
-                    <button className="w-full py-2 rounded-lg bg-primary-600 text-white font-semibold">
-                      Submit Leave Request
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </SectionCard>
-
-            {/* Fee Management */}
-            <SectionCard title="Fee Management">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="space-y-3">
-                  <div className="rounded-xl bg-gray-50 dark:bg-navy-700 p-4">
-                    <p className="text-sm font-semibold">Due Amount</p>
-                    <p className="text-3xl font-bold mt-2">$1,200</p>
-                    <p className="text-xs text-red-500">Due by Mar 10</p>
-                  </div>
-                  <button className="w-full py-3 rounded-xl bg-primary-600 text-white font-semibold">
-                    Pay Now
+                {data?.fees.structure.length > 0 && (
+                  <button className="w-full py-3 bg-blue-600 hover:bg-blue-700 rounded-xl font-bold transition-all transform hover:scale-[1.02] active:scale-95 shadow-lg shadow-blue-600/20">
+                    Pay Total Balance
                   </button>
-                  <button className="w-full py-3 rounded-xl border border-primary-500 text-primary-600 font-semibold">
-                    Download Receipt
-                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Upcoming Deadlines */}
+            <div className="glass-panel p-6 rounded-3xl border border-white/10 mb-8">
+              <h3 className="text-xl font-bold mb-6 text-red-400 flex items-center gap-2">
+                <AlertCircle size={20} /> Upcoming Deadlines
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {data?.deadlines?.map((deadline: any, idx: number) => (
+                  <div key={idx} className="p-4 rounded-2xl bg-white/5 border border-l-4 border-red-500/50">
+                    <p className="text-xs text-red-400 font-bold mb-1 uppercase tracking-wider">{deadline.date}</p>
+                    <h4 className="font-bold text-sm mb-1">{deadline.title}</h4>
+                    <p className="text-[10px] text-gray-500">{deadline.type}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Student Progress Section */}
+            <div className="mb-8">
+              <h2 className="text-2xl font-bold mb-6">Your Progress & Submissions</h2>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Progress Submission Form */}
+                <div>
+                  {data?.currentCourses && data.currentCourses.length > 0 ? (
+                    <StudentProgressSubmit
+                      enrollmentId={data.currentCourses[0]?.enrollment_id || 1}
+                      courseName={data.currentCourses[0]?.title || 'Course'}
+                      onSubmitSuccess={() => window.location.reload()}
+                    />
+                  ) : (
+                    <div className="glass-panel p-6 rounded-2xl border border-white/10 text-center">
+                      <p className="text-gray-400">Enroll in courses to start submitting progress</p>
+                    </div>
+                  )}
                 </div>
 
-                <div className="rounded-xl bg-gray-50 dark:bg-navy-700 p-4">
-                  <p className="text-sm font-semibold mb-3">Fee Structure</p>
-                  <div className="space-y-2">
-                    {FEE_STRUCTURE.map((item) => (
-                      <div key={item.label} className="flex justify-between text-sm">
-                        <span>{item.label}</span>
-                        <span>${item.amount}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="rounded-xl bg-gray-50 dark:bg-navy-700 p-4">
-                  <p className="text-sm font-semibold mb-3">Installment Plan</p>
-                  <div className="space-y-2 text-sm">
-                    <label className="flex items-center gap-2">
-                      <input type="radio" name="installment" defaultChecked />
-                      3-month plan
-                    </label>
-                    <label className="flex items-center gap-2">
-                      <input type="radio" name="installment" />
-                      6-month plan
-                    </label>
-                    <label className="flex items-center gap-2">
-                      <input type="radio" name="installment" />
-                      Custom plan
-                    </label>
-                  </div>
+                {/* Submission History */}
+                <div>
+                  <StudentSubmissionHistory />
                 </div>
               </div>
-
-              <div className="mt-6 overflow-x-auto">
-                <table className="min-w-full text-sm">
-                  <thead>
-                    <tr className="text-left text-gray-500">
-                      <th className="py-2">Payment ID</th>
-                      <th>Date</th>
-                      <th>Amount</th>
-                      <th>Method</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {PAYMENT_HISTORY.map((payment) => (
-                      <tr key={payment.id} className="border-t border-gray-200 dark:border-navy-700">
-                        <td className="py-3">{payment.id}</td>
-                        <td>{payment.date}</td>
-                        <td>${payment.amount}</td>
-                        <td>{payment.method}</td>
-                        <td>
-                          <span
-                            className={`px-2 py-1 rounded-full text-xs ${
-                              payment.status === 'Paid'
-                                ? 'bg-green-100 text-green-700'
-                                : 'bg-yellow-100 text-yellow-700'
-                            }`}
-                          >
-                            {payment.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </SectionCard>
-          </main>
-        </div>
+            </div>
+          </motion.div>
+        </main>
       </div>
-    </motion.div>
+
+      <style>{`
+        .glass-panel {
+          background: rgba(255, 255, 255, 0.03);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+      `}</style>
+    </div>
   );
 };
 

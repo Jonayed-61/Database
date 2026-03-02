@@ -38,9 +38,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Redirect to home if user is authenticated but tries to access auth pages
+  // Redirect to dashboard if user is authenticated but tries to access auth pages
   if (!requireAuth && isAuthenticated && redirectAuthenticated) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/dashboard" replace />;
   }
 
   // Check role-based access

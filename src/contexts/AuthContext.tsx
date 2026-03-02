@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
+import axios from 'axios';
 import {
   AuthContextType,
   AuthState,
@@ -13,6 +14,7 @@ import {
   logoutUser,
   refreshAccessToken,
   getCurrentUser,
+  socialAuth,
 } from '../services/auth.service';
 import {
   storeTokens,
@@ -49,13 +51,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
       const response = await loginUser(credentials);
-      
+
       // Store tokens
-      storeTokens(
-        response.tokens.accessToken,
-        response.tokens.refreshToken,
-        credentials.rememberMe || false
-      );
+      if (response.tokens) {
+        storeTokens(
+          response.tokens.accessToken,
+          response.tokens.refreshToken,
+          credentials.rememberMe || false
+        );
+      }
 
       setState({
         user: response.user,
@@ -66,6 +70,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       });
 
       toast.success('Login successful!');
+      // Record login activity for students
+      if (response.user?.role === 'student' && response.tokens?.accessToken) {
+        try {
+          const apiUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost/Database-main/backend';
+          await axios.post(`${apiUrl}/record_login.php`, {}, {
+            headers: {
+              Authorization: `Bearer ${response.tokens.accessToken}`,
+            },
+          });
+        } catch (err) {
+          // Silently fail - don't interrupt login process if recording fails
+          console.error('[AuthContext] Failed to record login activity:', err);
+        }
+      }
+      return response;
     } catch (error) {
       const errorMessage = formatAuthError(error);
       setState((prev) => ({
@@ -86,9 +105,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
       const response = await registerUser(data);
-      
+
       // Store tokens
-      storeTokens(response.tokens.accessToken, response.tokens.refreshToken, true);
+      if (response.tokens) {
+        storeTokens(response.tokens.accessToken, response.tokens.refreshToken, true);
+      }
 
       setState({
         user: response.user,
@@ -99,6 +120,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       });
 
       toast.success('Registration successful!');
+      return response;
     } catch (error) {
       const errorMessage = formatAuthError(error);
       setState((prev) => ({
@@ -138,8 +160,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const refreshToken = useCallback(async () => {
     try {
       const tokens = await refreshAccessToken();
-      
-      storeTokens(tokens.accessToken, tokens.refreshToken, true);
+
+      if (tokens) {
+        storeTokens(tokens.accessToken, tokens.refreshToken, true);
+      }
 
       setState((prev) => ({
         ...prev,
@@ -223,7 +247,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     const checkSession = () => {
       const token = getAccessToken();
-      
+
       if (!token) {
         logout();
         return;
@@ -234,11 +258,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       } else {
         // Calculate expiration time
         try {
-          const payload = JSON.parse(atob(token.split('.')[1]));
-          const expirationTime = payload.exp * 1000;
-          
-          if (isSessionExpiringSoon(expirationTime)) {
-            refreshToken();
+          const parts = token.split('.');
+          if (parts.length >= 2) {
+            const payload = JSON.parse(atob(parts[1]));
+            const expirationTime = payload.exp * 1000;
+
+            if (isSessionExpiringSoon(expirationTime)) {
+              refreshToken();
+            }
           }
         } catch (error) {
           console.error('Error parsing token:', error);
@@ -269,6 +296,40 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [state.isAuthenticated, refreshToken]);
 
+  /**
+   * Social Login function
+   */
+  const socialLogin = useCallback(async (provider: 'google' | 'facebook', token: string) => {
+    try {
+      setState((prev) => ({ ...prev, isLoading: true, error: null }));
+      const response = await socialAuth(provider, token);
+
+      if (response.tokens) {
+        storeTokens(response.tokens.accessToken, response.tokens.refreshToken, true);
+      }
+
+      setState({
+        user: response.user,
+        tokens: response.tokens,
+        isAuthenticated: true,
+        isLoading: false,
+        error: null,
+      });
+
+      toast.success(`${provider.charAt(0).toUpperCase() + provider.slice(1)} login successful!`);
+      return response;
+    } catch (error) {
+      const errorMessage = formatAuthError(error);
+      setState((prev) => ({
+        ...prev,
+        isLoading: false,
+        error: errorMessage,
+      }));
+      toast.error(errorMessage);
+      throw error;
+    }
+  }, []);
+
   const value: AuthContextType = {
     ...state,
     login,
@@ -276,6 +337,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     logout,
     refreshToken,
     updateUser,
+    socialLogin,
     clearError,
   };
 
@@ -293,4 +355,4 @@ export const useAuth = (): AuthContextType => {
   return context;
 };
 
-export default AuthContext;
+    export default AuthContext;

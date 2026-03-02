@@ -8,7 +8,21 @@ import LoginPage from '../pages/auth/LoginPage';
 import RegisterPage from '../pages/auth/RegisterPage';
 import ForgotPasswordPage from '../pages/auth/ForgotPasswordPage';
 import StudentDashboard from '../pages/student/StudentDashboard';
+import FacultyDashboard from '../pages/faculty/FacultyDashboard';
+import DatabaseViewer from '../pages/DatabaseViewer';
 import { ProtectedRoute, SessionTimeout } from '../components/auth';
+import { useAuth } from '../contexts/AuthContext';
+
+const DashboardRedirect: React.FC = () => {
+  const { user, isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) return null;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+
+  const role = user?.role?.toLowerCase();
+  if (role === 'faculty') return <Navigate to="/faculty/dashboard" replace />;
+  return <Navigate to="/student/dashboard" replace />;
+};
 
 const AppRoutes: React.FC = () => {
   return (
@@ -33,12 +47,30 @@ const AppRoutes: React.FC = () => {
             </ProtectedRoute>
           }
         />
-        
+
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute requireAuth={true}>
+              <DashboardRedirect />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/faculty/dashboard"
+          element={
+            <ProtectedRoute requireAuth={true}>
+              <FacultyDashboard />
+            </ProtectedRoute>
+          }
+        />
+
         {/* Auth Routes (redirect to home if already authenticated) */}
         <Route
           path="/login"
           element={
-            <ProtectedRoute requireAuth={false} redirectAuthenticated={false}>
+            <ProtectedRoute requireAuth={false} redirectAuthenticated={true}>
               <LoginPage />
             </ProtectedRoute>
           }
@@ -46,7 +78,7 @@ const AppRoutes: React.FC = () => {
         <Route
           path="/register"
           element={
-            <ProtectedRoute requireAuth={false} redirectAuthenticated={false}>
+            <ProtectedRoute requireAuth={false} redirectAuthenticated={true}>
               <RegisterPage />
             </ProtectedRoute>
           }
@@ -63,6 +95,9 @@ const AppRoutes: React.FC = () => {
         {/* Demo Routes */}
         <Route path="/demo" element={<ThemeDemo />} />
         <Route path="/components" element={<ComponentDemo />} />
+
+        {/* Database Viewer Route */}
+        <Route path="/database" element={<DatabaseViewer />} />
 
         {/* Fallback Route */}
         <Route path="*" element={<Navigate to="/" replace />} />

@@ -42,7 +42,9 @@ export const clearTokens = (): void => {
  */
 export const isTokenExpired = (token: string): boolean => {
   try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
+    const parts = token.split('.');
+    if (parts.length < 2) return true;
+    const payload = JSON.parse(atob(parts[1]));
     const expirationTime = payload.exp * 1000;
     return Date.now() >= expirationTime;
   } catch {
@@ -56,14 +58,16 @@ export const isTokenExpired = (token: string): boolean => {
  */
 export const getTokenExpiryTime = (token: string): number | null => {
   try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
+    const parts = token.split('.');
+    if (parts.length < 2) return null;
+    const payload = JSON.parse(atob(parts[1]));
     const expirationTime = payload.exp * 1000;
-    
+
     // Return null if already expired
     if (Date.now() >= expirationTime) {
       return null;
     }
-    
+
     return expirationTime;
   } catch {
     return null;
@@ -131,15 +135,15 @@ export const isValidEmail = (email: string): boolean => {
  */
 export const formatAuthError = (error: any): string => {
   if (typeof error === 'string') return error;
-  
+
   if (error.response?.data?.message) {
     return error.response.data.message;
   }
-  
+
   if (error.message) {
     return error.message;
   }
-  
+
   return 'An unexpected error occurred. Please try again.';
 };
 
