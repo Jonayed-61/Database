@@ -73,7 +73,7 @@ const Navbar: React.FC<NavbarProps> = ({
             >
               {logo || (
                 <span className="text-2xl font-display font-bold gradient-text">
-                  University
+                  Encrypt University
                 </span>
               )}
             </motion.div>

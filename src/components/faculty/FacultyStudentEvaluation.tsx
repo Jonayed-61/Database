@@ -44,7 +44,7 @@ const FacultyStudentEvaluation: React.FC = () => {
     try {
       const token = getAccessToken();
       const response = await axios.get(
-        `${process.env.REACT_APP_API_BASE_URL}/faculty_students.php`,
+        `${process.env.REACT_APP_API_BASE_URL}/faculty/students`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -66,7 +66,7 @@ const FacultyStudentEvaluation: React.FC = () => {
     try {
       const token = getAccessToken();
       const response = await axios.get(
-        `${process.env.REACT_APP_API_BASE_URL}/student_progress.php?enrollment_id=${enrollmentId}`,
+        `${process.env.REACT_APP_API_BASE_URL}/student/progress?enrollment_id=${enrollmentId}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -83,7 +83,7 @@ const FacultyStudentEvaluation: React.FC = () => {
     try {
       const token = getAccessToken();
       await axios.post(
-        `${process.env.REACT_APP_API_BASE_URL}/faculty_students.php`,
+        `${process.env.REACT_APP_API_BASE_URL}/faculty/students`,
         {
           assignment_id: assignmentId,
           faculty_rating: evaluationRating,

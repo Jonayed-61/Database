@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion, useAnimation } from 'framer-motion';
 
-interface StatsCardProps {
+export interface StatsCardProps {
   title: string;
   value: number;
   suffix?: string;

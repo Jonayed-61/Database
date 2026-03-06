@@ -17,9 +17,9 @@ const HomePage: React.FC = () => {
 
   const navItems = [
     { label: 'Home', href: '/' },
-    { label: 'Programs', href: '#programs' },
-    { label: 'News', href: '#news' },
-    { label: 'Events', href: '#events' },
+    { label: 'Programs', href: '/programs' },
+    { label: 'News', href: '/news' },
+    { label: 'Events', href: '/events' },
     { label: 'About', href: '/about' },
   ];
 

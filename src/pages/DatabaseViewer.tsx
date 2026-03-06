@@ -18,7 +18,7 @@ const DatabaseViewer: React.FC = () => {
     const fetchUsers = () => {
         setLoading(true);
         setError(null);
-        fetch('http://localhost:8000/get_users.php')
+        fetch(`${process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000'}/users/get`)
             .then((res) => {
                 if (!res.ok) throw new Error('Network response was not ok');
                 return res.json();
@@ -41,7 +41,7 @@ const DatabaseViewer: React.FC = () => {
 
     const addDemoUser = () => {
         setLoading(true);
-        fetch('http://localhost:8000/add_demo_user.php', { method: 'POST' })
+        fetch(`${process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000'}/users/add-demo`, { method: 'POST' })
             .then((res) => res.json())
             .then((result) => {
                 if (result.status === 'success') {
@@ -73,7 +73,7 @@ const DatabaseViewer: React.FC = () => {
                         </div>
                         <div>
                             <h1 className="text-2xl font-bold text-white">MS SQL Server Live Data</h1>
-                            <p className="text-slate-400 text-sm">Fetching from <code className="bg-slate-800 px-1 rounded text-orange-300">backend/get_users.php</code></p>
+                            <p className="text-slate-400 text-sm">Fetching from <code className="bg-slate-800 px-1 rounded text-orange-300">/users/get</code></p>
                         </div>
                     </div>
                     <div className="flex gap-3">

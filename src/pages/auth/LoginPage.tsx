@@ -10,7 +10,7 @@ import { LoginCredentials } from '../../types/auth.types';
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
-  role: z.string().refine((val) => ['student', 'faculty'].includes(val), {
+  role: z.string().refine((val) => ['student', 'faculty', 'admin'].includes(val), {
     message: 'Select a valid role',
   }),
   rememberMe: z.boolean().optional(),
@@ -26,7 +26,9 @@ const LoginPage: React.FC = () => {
   // Robust redirection if already authenticated
   React.useEffect(() => {
     if (isAuthenticated && user) {
-      const targetPath = user.role === 'faculty' ? '/faculty/dashboard' : '/student/dashboard';
+      let targetPath = '/student/dashboard';
+      if (user.role === 'faculty') targetPath = '/faculty/dashboard';
+      else if (user.role === 'admin') targetPath = '/admin/dashboard';
       navigate(targetPath, { replace: true });
     }
   }, [isAuthenticated, user, navigate]);
@@ -53,7 +55,9 @@ const LoginPage: React.FC = () => {
       // Small delay to ensure state propagation
       setTimeout(() => {
         const userRole = response.user.role?.toLowerCase();
-        const targetPath = userRole === 'faculty' ? '/faculty/dashboard' : '/student/dashboard';
+        let targetPath = '/student/dashboard';
+        if (userRole === 'faculty') targetPath = '/faculty/dashboard';
+        else if (userRole === 'admin') targetPath = '/admin/dashboard';
         navigate(targetPath, { replace: true });
       }, 100);
     } catch (error) {
@@ -70,7 +74,9 @@ const LoginPage: React.FC = () => {
       // Robust redirection after social login
       setTimeout(() => {
         const userRole = response.user.role?.toLowerCase();
-        const targetPath = userRole === 'faculty' ? '/faculty/dashboard' : '/student/dashboard';
+        let targetPath = '/student/dashboard';
+        if (userRole === 'faculty') targetPath = '/faculty/dashboard';
+        else if (userRole === 'admin') targetPath = '/admin/dashboard';
         navigate(targetPath, { replace: true });
       }, 100);
     } catch (error) {
@@ -166,6 +172,7 @@ const LoginPage: React.FC = () => {
               >
                 <option value="student" className="bg-[#050b18]">Sign in as Student</option>
                 <option value="faculty" className="bg-[#050b18]">Sign in as Faculty</option>
+                <option value="admin" className="bg-[#050b18]">Sign in as Admin</option>
               </select>
             </div>
 

@@ -1,5 +1,5 @@
 {
-  "name": "university-management",
+  "name": "encrypt-university",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
@@ -37,7 +37,7 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "server": "php -S localhost:8000 -t backend",
+    "server": "php -S localhost:5000 -t backend backend/router.php",
     "eject": "react-scripts eject",
     "format": "prettier --write \"src/**/*.{js,jsx,ts,tsx,json,css,scss,md}\"",
     "lint": "eslint src/**/*.{js,jsx,ts,tsx}",

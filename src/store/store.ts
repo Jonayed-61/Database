@@ -1,12 +1,16 @@
-import { configureStore } from '@reduxjs/toolkit';
+import { configureStore, createSlice } from '@reduxjs/toolkit';
 
-// Import your slices here
-// import exampleReducer from './slices/exampleSlice';
+// Create a simple placeholder reducer to avoid Redux warning
+const placeholderSlice = createSlice({
+  name: 'placeholder',
+  initialState: { value: null },
+  reducers: {},
+});
 
 export const store = configureStore({
   reducer: {
+    placeholder: placeholderSlice.reducer,
     // Add your reducers here
-    // example: exampleReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

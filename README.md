@@ -1,6 +1,6 @@
-# University Management System
+# 🎓 University Database Management System
 
-A modern, feature-rich university management web application built with React, TypeScript, Tailwind CSS, and Framer Motion.
+A professional full-stack database management system built with **React** (frontend) and **PHP** (backend) using **MS SQL Server** for real user data management.
 
 ## 🚀 Features
 

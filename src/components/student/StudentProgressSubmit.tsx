@@ -28,7 +28,7 @@ const StudentProgressSubmit: React.FC<StudentProgressProps> = ({
     try {
       const token = getAccessToken();
       const response = await axios.post(
-        `${process.env.REACT_APP_API_BASE_URL}/student_progress.php`,
+        `${process.env.REACT_APP_API_BASE_URL}/student/progress`,
         {
           enrollment_id: enrollmentId,
           assignment_title: assignmentTitle,

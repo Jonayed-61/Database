@@ -1,8 +1,12 @@
-# University Management System - Setup Summary
+# 🔧 Project Setup & Installation Guide
 
-## ✅ Project Successfully Created
+Complete step-by-step guide to set up and run the University Database Management System with real MS SQL Server database and user data.
 
-The University Management System has been successfully set up with all required configurations and dependencies.
+## ✅ Prerequisites
+
+### System Requirements
+- **Windows 10/11** (for MS SQL Server and Windows Authentication)
+- **MS SQL Server 2019 or later** (with `MAHI\SQLEXPRESS` instance)
 
 ## 📦 Installed Packages
 

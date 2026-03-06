@@ -28,7 +28,7 @@ const StudentSubmissionHistory: React.FC = () => {
     try {
       const token = getAccessToken();
       const response = await axios.get(
-        `${process.env.REACT_APP_API_BASE_URL}/student_progress.php`,
+        `${process.env.REACT_APP_API_BASE_URL}/student/progress`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }

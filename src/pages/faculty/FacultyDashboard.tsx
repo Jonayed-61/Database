@@ -51,10 +51,10 @@ const FacultyDashboard: React.FC = () => {
             try {
                 const token = getAccessToken();
                 const [statsRes, studentsRes] = await Promise.all([
-                    axios.get(`${process.env.REACT_APP_API_BASE_URL}/faculty_stats.php`, {
+                    axios.get(`${process.env.REACT_APP_API_BASE_URL}/faculty/stats`, {
                         headers: { Authorization: `Bearer ${token}` }
                     }),
-                    axios.get(`${process.env.REACT_APP_API_BASE_URL}/students_by_faculty.php`, {
+                    axios.get(`${process.env.REACT_APP_API_BASE_URL}/faculty/courses-students`, {
                         headers: { Authorization: `Bearer ${token}` }
                     })
                 ]);
@@ -82,7 +82,7 @@ const FacultyDashboard: React.FC = () => {
 
         try {
             const token = getAccessToken();
-            await axios.post(`${process.env.REACT_APP_API_BASE_URL}/add_grade.php`, {
+            await axios.post(`${process.env.REACT_APP_API_BASE_URL}/grades/add`, {
                 enrollment_id: gradeForm.enrollmentId,
                 grade: gradeForm.grade,
                 grade_point: parseFloat(gradeForm.gradePoint),
@@ -95,7 +95,7 @@ const FacultyDashboard: React.FC = () => {
             setGradeForm({ enrollmentId: '', grade: '', gradePoint: '', type: 'Quiz' });
 
             // Refresh stats to show new activity
-            const statsRes = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/faculty_stats.php`, {
+            const statsRes = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/faculty/stats`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setStats(statsRes.data);

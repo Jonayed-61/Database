@@ -41,7 +41,7 @@ const StudentDashboard: React.FC = () => {
     const fetchStudentData = async () => {
       try {
         const token = getAccessToken();
-        const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/student_stats.php`, {
+        const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/student/stats`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setData(response.data);

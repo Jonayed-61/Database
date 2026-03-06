@@ -10,8 +10,8 @@ import {
 } from '../types/auth.types';
 import { getAccessToken, getRefreshToken } from '../utils/auth.utils';
 
-// Mock API base URL - Replace with your actual API
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost/Database-main/backend';
+// API base URL - Points to backend server
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000';
 
 /**
  * Generate a mock JWT token for testing
@@ -71,7 +71,7 @@ export const loginUser = async (
 ): Promise<{ user: User; tokens: AuthTokens }> => {
   try {
     console.debug('[auth.service] loginUser credentials', credentials);
-    const response = await authApi.post('/login.php', credentials);
+    const response = await authApi.post('/auth/login', credentials);
     return response.data;
   } catch (error: any) {
     // log some details before rethrowing
@@ -92,21 +92,7 @@ export const registerUser = async (
 ): Promise<{ user: User; tokens: AuthTokens }> => {
   try {
     console.debug('[auth.service] registerUser data', data);
-    // Handle file upload if profile picture exists
-    if (data.profilePicture) {
-      const formData = new FormData();
-      Object.entries(data).forEach(([key, value]) => {
-        if (value !== undefined) {
-          formData.append(key, value);
-        }
-      });
-      const response = await authApi.post('/register.php', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-      return response.data;
-    }
-
-    const response = await authApi.post('/register.php', data);
+    const response = await authApi.post('/auth/register', data);
     return response.data;
   } catch (error: any) {
     console.error('[auth.service] registerUser failed', {
@@ -212,7 +198,7 @@ export const logoutUser = async (): Promise<void> => {
  */
 export const getCurrentUser = async (): Promise<User> => {
   try {
-    const response = await authApi.get('/me.php');
+    const response = await authApi.get('/users/me');
     return response.data;
   } catch (error) {
     throw error;
